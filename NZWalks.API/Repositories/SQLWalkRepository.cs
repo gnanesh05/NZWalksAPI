@@ -20,9 +20,33 @@ namespace NZWalks.API.Repositories
              return walk;
         }
 
-        public async Task<List<Walk>> GetAllAsync()
+        public async Task<Walk?> DeleteAsync(Guid id)
         {
-            return await dbContext.Walks.Include("Difficulty").Include("Region").ToListAsync();
+            var exisitingWalk = await dbContext.Walks.FirstOrDefaultAsync(x => x.Id == id);
+            if (exisitingWalk == null)
+            {
+                return null;
+            }
+            dbContext.Walks.Remove(exisitingWalk);
+            await dbContext.SaveChangesAsync();
+            return exisitingWalk;
+
+        }
+
+        public async Task<List<Walk>> GetAllAsync(string? filterOn = null, string? filterQuery = null)
+        {
+            var walks = dbContext.Walks.Include("Difficulty").Include("Region").AsQueryable();
+
+            //filtering
+            if( !string.IsNullOrWhiteSpace(filterOn) && !string.IsNullOrWhiteSpace(filterQuery))
+            {
+                if(filterOn.Equals("name", StringComparison.OrdinalIgnoreCase))
+                {
+                    walks = walks.Where(walk=>walk.Name.Contains(filterQuery));
+                }
+            }
+            return await walks.ToListAsync();
+            //return await dbContext.Walks.Include("Difficulty").Include("Region").ToListAsync();
         }
 
         public async Task<Walk?> GetByIdAsync(Guid Id)
